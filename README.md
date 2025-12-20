@@ -1,72 +1,79 @@
-# OpenAPI Template
+# AI-Powered Product Recommendation API  
+Semantic search, ranking, and reordering over 40,000+ SKUs
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/chanfana-openapi-template)
+Backend service that powers **AI-driven product recommendations** for promotional products.  
+Built for scale and low latency using **Pinecone**, **OpenAI embeddings**, and **Cloudflare Workers**.
 
-![OpenAPI Template Preview](https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/91076b39-1f5b-46f6-7f14-536a6f183000/public)
+This API replaces manual product curation and rule-heavy filters with **intent-aware ranking** that understands what the buyer is actually trying to do.
 
-<!-- dash-content-start -->
+---
 
-This is a Cloudflare Worker with OpenAPI 3.1 Auto Generation and Validation using [chanfana](https://github.com/cloudflare/chanfana) and [Hono](https://github.com/honojs/hono).
+## What this solves
 
-This is an example project made to be used as a quick start into building OpenAPI compliant Workers that generates the
-`openapi.json` schema automatically from code and validates the incoming request to the defined parameters or request body.
+Traditional product search breaks down at scale:
+- Keyword matching fails on vague intent (“welcome kit”, “client gifts”, “eco swag”)
+- Manual filters don’t capture context (event, industry, budget, urgency)
+- Sales teams waste time curating product lists by hand
 
-This template includes various endpoints, a D1 database, and integration tests using [Vitest](https://vitest.dev/) as examples. In endpoints, you will find [chanfana D1 AutoEndpoints](https://chanfana.com/endpoints/auto/d1) and a [normal endpoint](https://chanfana.com/endpoints/defining-endpoints) to serve as examples for your projects.
+This service:
+- Understands **natural-language intent**
+- Searches across **40K+ SKUs**
+- **Reorders results intelligently**, not just filters them
+- Works in real time at storefront speed
 
-Besides being able to see the OpenAPI schema (openapi.json) in the browser, you can also extract the schema locally no hassle by running this command `npm run schema`.
+---
 
-<!-- dash-content-end -->
+## Architecture
 
-> [!IMPORTANT]
-> When using C3 to create this project, select "no" when it asks if you want to deploy. You need to follow this project's [setup steps](https://github.com/cloudflare/templates/tree/main/openapi-template#setup-steps) before deploying.
+- **Cloudflare Workers**
+  - Edge-deployed API (low latency globally)
+  - Handles request orchestration and response shaping
 
-## Getting Started
+- **OpenAI API**
+  - Generates embeddings for user intent and queries
+  - Optional LLM reasoning for re-ranking and explanation
 
-Outside of this repo, you can start a new project with this template using [C3](https://developers.cloudflare.com/pages/get-started/c3/) (the `create-cloudflare` CLI):
+- **Pinecone**
+  - Vector index of 40,000+ products
+  - Fast semantic similarity search
+  - Metadata filtering (price, brand, category, supplier, etc.)
 
-```bash
-npm create cloudflare@latest -- --template=cloudflare/templates/openapi-template
-```
+---
 
-A live public deployment of this template is available at [https://openapi-template.templates.workers.dev](https://openapi-template.templates.workers.dev)
+## Core concept
 
-## Setup Steps
+Instead of:
+> “Filter by category → price → brand → sort”
 
-1. Install the project dependencies with a package manager of your choice:
-   ```bash
-   npm install
-   ```
-2. Create a [D1 database](https://developers.cloudflare.com/d1/get-started/) with the name "openapi-template-db":
-   ```bash
-   npx wrangler d1 create openapi-template-db
-   ```
-   ...and update the `database_id` field in `wrangler.json` with the new database ID.
-3. Run the following db migration to initialize the database (notice the `migrations` directory in this project):
-   ```bash
-   npx wrangler d1 migrations apply DB --remote
-   ```
-4. Deploy the project!
-   ```bash
-   npx wrangler deploy
-   ```
-5. Monitor your worker
-   ```bash
-   npx wrangler tail
-   ```
+We do:
+> “Understand intent → retrieve candidates → re-rank intelligently”
 
-## Testing
+---
 
-This template includes integration tests using [Vitest](https://vitest.dev/). To run the tests locally:
+## Main endpoint
 
-```bash
-npm run test
-```
+### `POST /v1/recommend`
 
-Test files are located in the `tests/` directory, with examples demonstrating how to test your endpoints and database interactions.
+Returns a **ranked list of products** based on intent, constraints, and context.
 
-## Project structure
+### Example request
 
-1. Your main router is defined in `src/index.ts`.
-2. Each endpoint has its own file in `src/endpoints/`.
-3. Integration tests are located in the `tests/` directory.
-4. For more information read the [chanfana documentation](https://chanfana.com/), [Hono documentation](https://hono.dev/docs), and [Vitest documentation](https://vitest.dev/guide/).
+```json
+{
+  "intent": "Eco-friendly welcome kits for new hires",
+  "limit": 12,
+
+  "constraints": {
+    "min_qty": 50,
+    "max_price_per_item": 15,
+    "eco": true,
+    "rush": false
+  },
+
+  "context": {
+    "industry": "SaaS",
+    "event": "New employee onboarding",
+    "brand_tone": "Modern",
+    "ship_by": "2025-03-20"
+  }
+}
